@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Search } from "./components/Search";
 import { Spinner } from "./components/Spinner";
+import MovieCard from "./components/MovieCard";
+import { useDebounce } from 'react-use'
 
 const API_BASE_URL = 'https://api.themoviedb.org/3';
 
@@ -19,14 +21,20 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [movieList, setMovieList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
-  const fetchMovies = async () => {
+  // 유저가 입력을 멈춘 후 500ms 후에 검색어 상태 업데이트
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm]);
+
+  const fetchMovies = async (query = '') => {
     setLoading(true);
     setErrorMessage('');
 
     try {
       setLoading(true);
-      const endpoint = `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
+      const endpoint = query 
+      ? `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}`
+      : `${API_BASE_URL}/discover/movie?sort_by=popularity.desc`;
 
       const response = await fetch(endpoint, API_OPTIONS);
 
@@ -51,8 +59,8 @@ const App = () => {
   }
 
   useEffect(() => {
-    fetchMovies();
-  }, [])
+    fetchMovies(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
 
   return (
     <main>
@@ -76,7 +84,7 @@ const App = () => {
           ): (
             <ul>
               {movieList.map((movie) => (
-                <p key={movie.id} className="text-white">{movie.title}</p>
+                <MovieCard key={movie.id} movie={movie} />
               ))}
             </ul>
           )}
